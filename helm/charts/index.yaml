@@ -1,0 +1,15 @@
+apiVersion: v1
+entries:
+  myapp:
+  - apiVersion: v2
+    appVersion: 1.16.0
+    created: "2021-10-30T21:38:08.886571419+02:00"
+    description: A Helm chart for Kubernetes, Practica 4 recuperación HELM Jaime Hernandez
+      Ortiz
+    digest: 51bbfd1775602a9e008056fc3fd05c32a87ad6676f3b6a0041c70c3c8c4e476b
+    name: myapp
+    type: application
+    urls:
+    - myapp-0.1.0.tgz
+    version: 0.1.0
+generated: "2021-10-30T21:38:08.885473242+02:00"
