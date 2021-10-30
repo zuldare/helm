@@ -1,0 +1,78 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-mysql-deployment
+  namespace: mca-app
+spec:
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}-mysql
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}-mysql
+    spec:
+      containers:
+      - name: mysql
+        image: {{ .Values.mysql.name }}:{{ .Values.mysql.tag }}
+        ports:
+          - containerPort: {{ .Values.mysql.port }}
+        
+        # TODO move to values
+        env: 
+        - name: MYSQL_DATABASE
+          value: database
+        - name: MYSQL_USER
+          value: myuser
+        - name: MYSQL_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Release.Name }}-secrets
+              key: mysql-key
+        - name: MYSQL_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Release.Name }}-secrets
+              key: mysql-key
+        volumeMounts:
+        - mountPath: /data/db
+          name: db
+      volumes:
+      - name: db
+        persistentVolumeClaim:
+          claimName: {{ .Release.Name }}-mysql-pvc
+---
+apiVersion: v1 
+kind: Service
+metadata:
+  name: {{ .Release.Name }}-mysql
+  namespace: mca-app
+  labels:
+    app: {{ .Release.Name }}-mysql
+spec:
+  ports:
+  - name: sql
+    protocol: TCP
+    port: {{ .Values.mysql.port }}
+    targetPort: {{ .Values.mysql.port }}
+  selector:
+    app: {{ .Release.Name }}-mysql
+  type: ClusterIP
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ .Release.Name }}-mysql-from-worker
+  namespace: mca-app
+spec:
+  podSelector:
+    matchLabels:
+      app: {{ .Release.Name }}-mysql
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: {{ .Release.Name }}-worker
+    ports:
+    - port: {{ .Values.mysql.port }}
+      protocol: TCP

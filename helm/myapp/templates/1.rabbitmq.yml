@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-rabbitmq-deployment
+  namespace: mca-app
+spec:
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}-rabbitmq
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}-rabbitmq
+    spec:
+      containers:
+      - name: rabbitmq
+        image: {{ .Values.rabbit.name }}:{{ .Values.rabbit.tag }}
+        ports:
+          - containerPort: {{ .Values.rabbit.port }}
+---
+apiVersion: v1 
+kind: Service
+metadata:
+  name: {{ .Release.Name }}-rabbitmq
+  namespace: mca-app
+  labels:
+    app: {{ .Release.Name }}-rabbitmq
+spec:
+  ports:
+  - name: rabbitmq-port
+    protocol: TCP
+    port: {{ .Values.rabbit.port }}
+    targetPort: {{ .Values.rabbit.port }}
+  selector:
+    app: {{ .Release.Name }}-rabbitmq
+  type: ClusterIP
+{{- if .Values.np.enabled }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ .Release.Name }}-rabbitmq-from-external
+  namespace: mca-app
+spec:
+  podSelector:
+    matchLabels:
+      app: {{ .Release.Name }}-rabbitmq
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: {{ .Release.Name }}-external-service
+    ports:
+    - port: {{ .Values.rabbit.port }}
+      protocol: TCP
+{{- end }}

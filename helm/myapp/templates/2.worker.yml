@@ -1,0 +1,81 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-worker-deployment  
+  namespace: mca-app
+spec:
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}-worker
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}-worker
+    spec:
+      securityContext:
+        runAsUser: 1001
+      containers:
+      - name: worker
+        image: {{ .Values.worker.name }}:{{ .Values.worker.tag }}
+        # TODO move to values
+        env:
+        - name: RABBITMQ_SERVER
+          value: {{ .Release.Name }}-rabbitmq
+        - name: UPPERCASE_GRPC_SERVER
+          value: static://{{ .Release.Name }}-external-service:9090
+        - name: MYSQL_SERVER
+          value: {{ .Release.Name }}-mysql
+        - name: MYSQL_DATABASE
+          value: database
+        - name: MYSQL_USER
+          value: myuser
+        - name: MYSQL_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Release.Name }}-secrets
+              key: mysql-key
+{{- if .Values.np.enabled }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ .Release.Name }}-worker-from-server
+  namespace: mca-app
+spec:
+  podSelector:
+    matchLabels:
+      app: {{ .Release.Name }}-worker
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: {{ .Release.Name }}-server
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: kube-system
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ .Release.Name }}-worker-to-external-mysql
+  namespace: mca-app
+spec:
+  podSelector:
+    matchLabels:
+      app: {{ .Release.Name }}-worker
+  egress:
+  - to:
+    - podSelector:
+        matchLabels:
+          app: {{ .Release.Name }}-external-service
+    ports:
+    - port: {{ .Values.worker.port }}
+      protocol: TCP
+  - to:
+    - podSelector:
+        matchLabels:
+          app: {{ .Release.Name }}-mysql
+    ports:
+    - port:  {{ .Values.mysql.port }}
+      protocol: TCP
+{{- end }}

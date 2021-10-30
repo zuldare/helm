@@ -1,0 +1,58 @@
+ingress:
+  enabled: true
+  hostname: "cluster-ip"
+  noIngressType: NodePort
+
+
+## DATABASES
+mongo:
+  name: mongo
+  tag: 4.2.3
+  port: "27017"
+
+mysql:
+  name: mysql
+  tag: 8
+  port: 3306
+  password: ''
+
+
+## RABBIT
+rabbit:
+  name: fjvela/urjc-fjvela-rabbitmq
+  tag: 1.0.0
+  port: "5672"
+
+
+## SERVICES
+
+externalservice:
+  name: fjvela/urjc-fjvela-external-service
+  tag: 1.0.1
+  port: 9090
+
+server:
+  name: fjvela/urjc-fjvela-server
+  tag: 1.0.5
+  port: "8080"
+
+
+worker:
+  name: fjvela/urjc-fjvela-worker
+  tag: 1.0.1
+  port: "9090"
+
+# Network policies
+np:
+  enabled: "true"
+ 
+
+# SecurityContext
+securityContext:
+  runAsUser: 1000
+ 
+
+createVolumes:
+  enabled: true
+
+

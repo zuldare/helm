@@ -1,0 +1,15 @@
+{{- if .Values.createVolumes.enabled }}
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: {{ .Release.Name }}-mysql-pv
+  namespace: mca-app
+spec:
+  storageClassName: mysql
+  accessModes:
+  - ReadWriteOnce
+  capacity:
+    storage: 1Gi
+  hostPath:
+    path: /db/{{ .Release.Name }}/mysql
+{{- end }}

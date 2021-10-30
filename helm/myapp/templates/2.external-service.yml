@@ -1,0 +1,76 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-external-service-deployment
+  namespace: mca-app
+spec:
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}-external-service
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}-external-service
+    spec:
+      securityContext:
+        runAsUser: 1000
+      containers:
+      - name: external-service
+        image: {{ .Values.externalservice.name }}:{{ .Values.externalservice.tag }}
+        ports:
+          - containerPort: {{ .Values.externalservice.port }}
+---
+apiVersion: v1 
+kind: Service
+metadata:
+  name: {{ .Release.Name }}-external-service
+  namespace: mca-app
+  labels:
+    app: {{ .Release.Name }}-external-service
+spec:
+  ports:
+  - name: external-service-port
+    protocol: TCP
+    port: {{ .Values.externalservice.port }}
+    targetPort: {{ .Values.externalservice.port }}
+  selector:
+    app: {{ .Release.Name }}-external-service
+  type: ClusterIP
+{{- if .Values.np.enabled }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ .Release.Name }}-external-from-worker
+  namespace: mca-app
+spec:
+  podSelector:
+    matchLabels:
+      app: {{ .Release.Name }}-external-service
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: {{ .Release.Name }}-worker
+    ports:
+    - port: {{ .Values.externalservice.port }}
+      protocol: TCP
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ .Release.Name }}-external-to-rabbitmq
+  namespace: mca-app
+spec:
+  podSelector:
+    matchLabels:
+      app: {{ .Release.Name }}-external-service
+  egress:
+  - to:
+    - podSelector:
+        matchLabels:
+          app: {{ .Release.Name }}-rabbitmq
+    ports:
+    - port: {{ .Values.externalservice.port }}
+      protocol: TCP
+{{- end }}

@@ -1,0 +1,63 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-mongo-deployment
+  namespace: mca-app
+spec:
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}-mongo
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}-mongo
+    spec:
+      containers:
+      - name: mongo
+        image: {{ .Values.mongo.name }}:{{ .Values.mongo.tag }}
+        ports:
+          - containerPort: {{ .Values.mongo.port }}
+        volumeMounts:
+        - mountPath: /data/db
+          name: db
+      volumes:
+      - name: db
+        persistentVolumeClaim:
+          claimName: {{ .Release.Name }}-mongo-pvc
+---
+apiVersion: v1 
+kind: Service
+metadata:
+  name: {{ .Release.Name }}-mongo
+  namespace: mca-app
+  labels:
+    app: {{ .Release.Name }}-mongo
+spec:
+  ports:
+  - name: mongo-port
+    protocol: TCP
+    port: {{ .Values.mongo.port }}
+    targetPort: {{ .Values.mongo.port }}
+  selector:
+    app: {{ .Release.Name }}-mongo
+  type: ClusterIP
+{{- if .Values.np.enabled }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ .Release.Name }}-mongo-from-server
+  namespace: mca-app
+spec:
+  podSelector:
+    matchLabels:
+      app: {{ .Release.Name }}-mongo
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: {{ .Release.Name }}-server
+    ports:
+    - port: {{ .Values.mongo.port }}
+      protocol: TCP
+{{- end }}
